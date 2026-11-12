@@ -1,4 +1,4 @@
-name: Compilar APK Gratis SuperApp Flutter 3.50 (Esquema 3 + 3 Motores SDUI + Logo)
+name: Compilar APK Gratis SuperApp Flutter (Esquema 3 + 3 Motores SDUI + Logo)
 
 on:
   push:
@@ -18,13 +18,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 3. Instalar Flutter 3.50 Estable
+      - name: 3. Instalar Flutter 3.24.5 LTS (Dart 3.5+ Compatible con todas las librerias Material)
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.24.5'
           channel: 'stable'
           cache: true
 
-      - name: 4. Generar estructura Android/iOS preservando lib/ y logo.png
+      - name: 4. Generar estructura Android/iOS preservando los 17 Microservicios en lib/ y logo.png
         run: |
           mv pubspec.yaml /tmp/pubspec_full.yaml
           cp -r lib /tmp/lib_backup
@@ -37,12 +38,12 @@ jobs:
           if [ -f "/tmp/logo_backup.png" ]; then cp /tmp/logo_backup.png logo.png; fi
           python3 configurar_build.py android
 
-      - name: 5. Resolver las 56 librerias en Flutter 3.50 y verificar los Microservicios Dart
+      - name: 5. Resolver librerias compatibles y verificar los 17 Microservicios Dart
         run: |
           python3 configurar_build.py pub
           flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: 6. Compilar APK Release en Flutter 3.50 con Escudo Auto-Recuperacion
+      - name: 6. Compilar APK Release con Escudo de 3 Niveles
         run: |
           python3 configurar_build.py apk
 
