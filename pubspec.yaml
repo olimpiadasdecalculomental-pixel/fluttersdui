@@ -1,10 +1,10 @@
 name: motor_universal_flutter
-description: SuperApp SDUI Flutter Adaptativa para Celular y Tablet (Android & iOS - Esquema 3)
+description: SuperApp SDUI Flutter 3.24 LTS (Orbe Imperio + Netflix/TikTok Offline + QR + AR/VR 360 + Duolingo + Kahoot/Lumosity + IoT Arduino - Esquema 3)
 publish_to: 'none'
-version: 3.3.0+1
+version: 3.4.0+1
 
 environment:
-  sdk: '>=3.2.0 <4.0.0'
+  sdk: '>=3.2.0 < 4.0.0'
 
 dependencies:
   flutter:

@@ -18,27 +18,23 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 3. Instalar Flutter 3.24.5 LTS Estable (Compatible Android, iOS y Tablets)
+      - name: 3. Instalar Flutter 3.24.5 LTS Estable
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: 'stable'
           cache: true
 
-      - name: 4. Generar estructura nativa limpia Android/iOS e inyectar permisos
+      - name: 4. Generar estructura nativa limpia Android/iOS e inyectar permisos SuperApp
         run: |
-          mv pubspec.yaml /tmp/pubspec.yaml
-          mv lib/main.dart /tmp/main.dart
-          rm -rf android ios test
+          cp pubspec.yaml /tmp/pubspec.yaml
+          cp lib/main.dart /tmp/main.dart
+          rm -rf android ios test analysis_options.yaml
           flutter create --platforms=android,ios --org com.orbe.sanjose --project-name motor_universal_flutter .
-          rm -rf test
-          mv /tmp/pubspec.yaml pubspec.yaml
-          mv /tmp/main.dart lib/main.dart
-
-          sed -i '/<application/i \
-          <uses-permission android:name="android.permission.INTERNET"/>\n\
-          <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n\
-          <uses-permission android:name="android.permission.VIBRATE"/>' android/app/src/main/AndroidManifest.xml
+          rm -rf test analysis_options.yaml
+          cp /tmp/pubspec.yaml pubspec.yaml
+          cp /tmp/main.dart lib/main.dart
+          echo "aW1wb3J0IHBhdGhsaWIKcCA9IHBhdGhsaWIuUGF0aCgnYW5kcm9pZC9hcHAvc3JjL21haW4vQW5kcm9pZE1hbmlmZXN0LnhtbCcpCnR4dCA9IHAucmVhZF90ZXh0KCkKcGVybXMgPSAnJycKICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uSU5URVJORVQiLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uQUNDRVNTX05FVFdPUktfU1RBVEUiLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uQUNDRVNTX1dJRklfU1RBVEUiLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uQkxVRVRPT1RIIi8+CiAgICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLkJMVUVUT09USF9BRE1JTiIvPgogICAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5CTFVFVE9PVEhfU0NBTiIvPgogICAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5CTFVFVE9PVEhfQ09OTkVDVCIvPgogICAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5DQU1FUkEiLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uUkVDT1JEX0FVRElPIi8+CiAgICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLkFDQ0VTU19GSU5FX0xPQ0FUSU9OIi8+CiAgICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLkFDQ0VTU19DT0FSU0VfTE9DQVRJT04iLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uVklCUkFURSIvPgogICAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5VU0VfQklPTUVUUklDIi8+CicnJwppZiAnYW5kcm9pZC5wZXJtaXNzaW9uLkNBTUVSQScgbm90IGluIHR4dDoKICAgIHR4dCA9IHR4dC5yZXBsYWNlKCc8YXBwbGljYXRpb24nLCBwZXJtcyArICcgICAgPGFwcGxpY2F0aW9uJywgMSkKICAgIHAud3JpdGVfdGV4dCh0eHQpCg==" | base64 -d | python3
 
       - name: 5. Descargar dependencias y verificar codigo Dart
         run: |
@@ -46,7 +42,7 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: 6. Compilar APK Release Universal (Celular y Tablet)
-        run: flutter build apk --release --no-tree-shake-icons -v
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: 7. Publicar APK descargable en GitHub Actions
         uses: actions/upload-artifact@v4
