@@ -15,32 +15,62 @@ class Ms01HeaderYGrids {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Text(
-                    'ORBE',
-                    style: TextStyle(
-                      color: Color(0xFF00F3FF),
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      shadows: [Shadow(color: Color(0xFF00F3FF), blurRadius: 12)],
+                  Container(
+                    width: 36,
+                    height: 36,
+                    margin: const EdgeInsets.only(right: 10),
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFFBB400), width: 1.8),
+                      boxShadow: [BoxShadow(color: const Color(0xFFFBB400).withAlpha(65), blurRadius: 8)],
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'logo.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.shield, color: Color(0xFF00F3FF), size: 22),
+                      ),
                     ),
                   ),
-                  Text(' 🌍', style: TextStyle(fontSize: 20)),
+                  const Text(
+                    'SAN JOSÉ',
+                    style: TextStyle(
+                      color: Color(0xFFD7E3FD),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.1,
+                      shadows: [Shadow(color: Color(0xFF00509D), blurRadius: 10)],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00509D),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text('1942', style: TextStyle(color: Color(0xFFFBB400), fontSize: 10, fontWeight: FontWeight.w900)),
+                  ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.red.withAlpha(30),
+                  color: const Color(0xFF1F2A3E),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.red, width: 1.5),
+                  border: Border.all(color: const Color(0xFFFBB400), width: 1.2),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.power_settings_new, color: Colors.red, size: 15),
-                    SizedBox(width: 4),
-                    Text('SALIR', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+                    const Icon(Icons.stars, color: Color(0xFFFBB400), size: 15),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${b['puntos_mto'] ?? '350'} pts',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
                   ],
                 ),
               ),
@@ -51,26 +81,34 @@ class Ms01HeaderYGrids {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Socio: ${b['socio_nombre'] ?? 'JORGE REX'}', style: const TextStyle(color: Color(0xFF00FFFF), fontSize: 11)),
-                  Text('${b['socio_rango'] ?? 'SUPERADMIN'}', style: const TextStyle(color: Color(0xFF00FFFF), fontSize: 10, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Text('${b['online_txt'] ?? '5420 On line'} | ', style: const TextStyle(color: Color(0xFF00FF00), fontSize: 10, fontWeight: FontWeight.bold)),
-                      Text('${b['recompensas_txt'] ?? '315 Recompensas'}', style: const TextStyle(color: Color(0xFFFFFF00), fontSize: 10, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${b['socio_nombre'] ?? 'SOCIO VIP · ORURO'}', style: const TextStyle(color: Color(0xFFFFD795), fontSize: 11, fontWeight: FontWeight.bold)),
+                    Text('${b['socio_rango'] ?? 'Lanzamiento Activo'}', style: const TextStyle(color: Color(0xFFA9C7FF), fontSize: 10)),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text('${b['online_txt'] ?? '5420 On line'} | ', style: const TextStyle(color: Color(0xFF00E676), fontSize: 10, fontWeight: FontWeight.bold)),
+                        Flexible(
+                          child: Text(
+                            '${b['recompensas_txt'] ?? '315 Recompensas'}',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Color(0xFFFFB703), fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text('INVENTARIO:', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                  Text('${b['puntos_mto'] ?? '9999999.00'} MTO', style: const TextStyle(color: Color(0xFF00FFFF), fontSize: 14, fontWeight: FontWeight.bold)),
-                  Text('1 USD = ${b['tasa_bs'] ?? '6.86'} Bs | 1 USD = ${b['tasa_mto'] ?? '100'} MTO', style: const TextStyle(color: Color(0xFF00FFFF), fontSize: 9)),
+                  const Text('3 MOTORES SDUI:', style: TextStyle(color: Color(0xFFA9C7FF), fontSize: 9, fontWeight: FontWeight.bold)),
+                  const Text('ESQ3 + STAC + JDW', style: TextStyle(color: Color(0xFF00E676), fontSize: 11, fontWeight: FontWeight.w900)),
+                  Text('1 USD = ${b['tasa_bs'] ?? '6.86'} Bs', style: const TextStyle(color: Colors.white70, fontSize: 9)),
                 ],
               ),
             ],
@@ -119,7 +157,7 @@ class Ms01HeaderYGrids {
                     width: double.infinity,
                     height: double.infinity,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0A0A1C),
+                      color: const Color(0xFF101C2F),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: col, width: 1.5),
                       boxShadow: [BoxShadow(color: col.withAlpha(70), blurRadius: 8)],
@@ -143,7 +181,7 @@ class Ms01HeaderYGrids {
                       right: -4,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(color: const Color(0xFFFFD700), borderRadius: BorderRadius.circular(4)),
+                        decoration: BoxDecoration(color: const Color(0xFFFBB400), borderRadius: BorderRadius.circular(4)),
                         child: const Text('VIP', style: TextStyle(color: Colors.black, fontSize: 7, fontWeight: FontWeight.w900)),
                       ),
                     ),

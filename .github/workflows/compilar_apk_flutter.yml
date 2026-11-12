@@ -1,4 +1,4 @@
-name: Compilar APK Gratis SuperApp Flutter Microservicios (Esquema 3)
+name: Compilar APK Gratis SuperApp Flutter 3.50 (Esquema 3 + 3 Motores SDUI + Logo)
 
 on:
   push:
@@ -18,105 +18,39 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 3. Instalar Flutter 3.24.5 LTS Estable
+      - name: 3. Instalar Flutter 3.50 Estable
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.5'
           channel: 'stable'
           cache: true
 
-      - name: 4. Generar estructura Android/iOS preservando los 15 Microservicios en lib/
+      - name: 4. Generar estructura Android/iOS preservando los Microservicios en lib/ y logo.png
         run: |
           cp pubspec.yaml /tmp/pubspec_full.yaml
           cp -r lib /tmp/lib_backup
+          if [ -f "logo.png" ]; then cp logo.png /tmp/logo_backup.png; fi
           rm -rf android ios test analysis_options.yaml
           flutter create --platforms=android,ios --org com.orbe.sanjose --project-name motor_universal_flutter .
           rm -rf test analysis_options.yaml lib
           cp /tmp/pubspec_full.yaml pubspec.yaml
           cp -r /tmp/lib_backup lib
+          if [ -f "/tmp/logo_backup.png" ]; then cp /tmp/logo_backup.png logo.png; fi
+          echo "aW1wb3J0IHBhdGhsaWIsIHNodXRpbCwgYmFzZTY0CgogMS4gRW5zdXJlIGxvZ28ucG5nIGV4aXN0cwpsb2dvX3BhdGggPSBwYXRobGliLlBhdGgoJ2xvZ28ucG5nJykKaWYgbm90IGxvZ29fcGF0aC5leGlzdHMoKToKICAgIHBuZ18xeDEgPSBiYXNlNjQuYjY0ZGVjb2RlKCdpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBQUVBQUFBQkNBWUFBQUFmRmNTSkFBQUFEVWxFUVZSNDFtTmsrTTlRRHdBRGhnR0FXakI5YXdBQUFBQkpUlU1RXJrSmdnZz09JykKICAgIGxvZ29fcGF0aC53cml0ZV9ieXRlcyhwbmRfMXgxKQoKIyAyLiBDb3B5IGxvZ28ucG5nIGFzIEFuZHJvaWQgbGF1bmNoZXIgaWNvbiBpbiBhbGwgbWlwbWFwIGZvbGRlcnMKcmVzX2RpciA9IHBhdGhsaWIuUGF0aCgnYW5kcm9pZC9hcHAvc3JjL21haW4vcmVzJykKaWYgcmVzX2Rpci5leGlzdHMoKToKICAgIGZvciBtaXBtYXAgaW4gcmVzX2Rpci5nbG9iKCdtaXBtYXAtKicpOgogICAgICAgIGlmIG1pcG1hcC5pc19kaXIoKToKICAgICAgICAgICAgZm9yIGljb25fbmFtZSBpbiBbJ2ljX2xhdW5jaGVyLnBuZycsICdpY19sYXVuY2hlcl9yb3VuZC5wbmcnXToKICAgICAgICAgICAgICAgIHRhcmdldCA9IG1pcG1hcCAvIGljb25fbmFtZQogICAgICAgICAgICAgICAgaWYgdGFyZ2V0LmV4aXN0cygpIG9yIGljb25fbmFtZSA9PSAnaWNfbGF1bmNoZXIucG5nJzoKICAgICAgICAgICAgICAgICAgICBzaHV0aWwuY29weWZpbGUobG9nb19wYXRoLCB0YXJnZXQpCgojIDMuIEluamVjdCBTdXBlckFwcCBwZXJtaXNzaW9ucyBpbnRvIEFuZHJvaWRNYW5pZmVzdC54bWwKbWFuaWZlc3RfcGF0aCA9IHBhdGhsaWIuUGF0aCgnYW5kcm9pZC9hcHAvc3JjL21haW4vQW5kcm9pZE1hbmlmZXN0LnhtbCcpCmlmIG1hbmlmZXN0X3BhdGguZXhpc3RzKCk6CiAgICB0eHQgPSBtYW5pZmVzdF9wYXRoLnJlYWRfdGV4dChlbmNvZGluZz0ndXRmLTgnKQogICAgcGVybXMgPSAnJycKICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uSU5URVJORVQiLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uQUNDRVNTX05FVFdPUktfU1RBVEUiLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uQUNDRVNTX1dJRklfU1RBVEUiLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uQkxVRVRPT1RIIi8+CiAgICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLkJMVUVUT09USF9BRE1JTiIvPgogICAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5CTFVFVE9PVEhfU0NBTiIvPgogICAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5CTFVFVE9PVEhfQ09OTkVDVCIvPgogICAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5DQU1FUkEiLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uUkVDT1JEX0FVRElPIi8+CiAgICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLkFDQ0VTU19GSU5FX0xPQ0FUSU9OIi8+CiAgICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLkFDQ0VTU19DT0FSU0VfTE9DQVRJT04iLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uVklCUkFURSIvPgogICAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5VU0VfQklPTUVUUklDIi8+CicnJwogICAgaWYgJ2FuZHJvaWQucGVybWlzc2lvbi5DQU1FUkEnIG5vdCBpbiB0eHQ6CiAgICAgICAgdHh0ID0gdHh0LnJlcGxhY2UoJzxhcHBsaWNhdGlvbicsIHBlcm1zICsgJyAgICA8YXBwbGljYXRpb24nLCAxKQogICAgICAgIG1hbmlmZXN0X3BhdGgud3JpdGVfdGV4dCh0eHQsIGVuY29kaW5nPSd1dGYtOCcpCgojIDQuIFVwZGF0ZSBtaW5TZGsgYW5kIGNvbXBpbGVTZGsgaW4gYnVpbGQuZ3JhZGxlIC8gYnVpbGQuZ3JhZGxlLmt0cwpmb3IgZ3JhZGxlX2ZpbGUgaW4gWydhbmRyb2lkL2FwcC9idWlsZC5ncmFkbGUnLCAnYW5kcm9pZC9hcHAvYnVpbGQuZ3JhZGxlLmt0cyddOgogICAgZ3AgPSBwYXRobGliLlBhdGgoZ3JhZGxlX2ZpbUpCiAgICBpZiBncC5leGlzdHMoKToKICAgICAgICBndHh0ID0gZ3AucmVhZF90ZXh0KGVuY29kaW5nPSd1dGYtOCcpCiAgICAgICAgZ3R4dCA9IGd0eHQucmVwbGFjZSgnbWluU2RrID0gZmx1dHRlci5taW5TZGtWZXJzaW9uJywgJ21pblNkayA9IDIzJykKICAgICAgICBndHh0ID0gZ3R4dC5yZXBsYWNlKCdtaW5TZGtWZXJzaW9uIGZsdXR0ZXIubWluU2RrVmVyc2lvbicgLCAnbWluU2RrVmVyc2lvbiAyMycpCiAgICAgICAgZ3R4dCA9IGd0eHQucmVwbGFjZSgnY29tcGlsZVNkayA9IGZsdXR0ZXIuY29tcGlsZVNka1ZlcnNpb24nLCAnY29tcGlsZVNkayA9IDM1JykKICAgICAgICBncC53cml0ZV90ZXh0KGd0eHQsIGVuY29kaW5nPSd1dGYtOCcpCg==" | base64 -d | python3
 
-          if [ -f "android/app/build.gradle" ]; then
-            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/g' android/app/build.gradle
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/g' android/app/build.gradle
-            sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle
-          fi
-          if [ -f "android/app/build.gradle.kts" ]; then
-            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/g' android/app/build.gradle.kts
-            sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle.kts
-          fi
-
-          echo "aW1wb3J0IHBhdGhsaWIKcCA9IHBhdGhsaWIuUGF0aCgnYW5kcm9pZC9hcHAvc3JjL21haW4vQW5kcm9pZE1hbmlmZXN0LnhtbCcpCnR4dCA9IHAucmVhZF90ZXh0KCkKcGVybXMgPSAnJycKICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uSU5URVJORVQiLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uQUNDRVNTX05FVFdPUktfU1RBVEUiLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uQUNDRVNTX1dJRklfU1RBVEUiLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uQkxVRVRPT1RIIi8+CiAgICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLkJMVUVUT09USF9BRE1JTiIvPgogICAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5CTFVFVE9PVEhfU0NBTiIvPgogICAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5CTFVFVE9PVEhfQ09OTkVDVCIvPgogICAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5DQU1FUkEiLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uUkVDT1JEX0FVRElPIi8+CiAgICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLkFDQ0VTU19GSU5FX0xPQ0FUSU9OIi8+CiAgICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLkFDQ0VTU19DT0FSU0VfTE9DQVRJT04iLz4KICAgIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uVklCUkFURSIvPgogICAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5VU0VfQklPTUVUUklDIi8+CicnJwppZiAnYW5kcm9pZC5wZXJtaXNzaW9uLkNBTUVSQScgbm90IGluIHR4dDoKICAgIHR4dCA9IHR4dC5yZXBsYWNlKCc8YXBwbGljYXRpb24nLCBwZXJtcyArICcgICAgPGFwcGxpY2F0aW9uJywgMSkKICAgIHAud3JpdGVfdGV4dCh0eHQpCg==" | base64 -d | python3
-
-      - name: 5. Resolver librerias compatibles y auditar los 15 Microservicios Dart
+      - name: 5. Resolver librerias Flutter 3.50 y verificar los Microservicios Dart
         run: |
           if ! flutter pub get; then
-            echo "Ajustando perfil de librerias puras compatibles con Flutter 3.24.5 LTS..."
-            cat << 'EOF' > pubspec.yaml
-          name: motor_universal_flutter
-          description: SuperApp SDUI Modular por Microservicios (Esquema 3)
-          publish_to: 'none'
-          version: 4.0.0+1
-          environment:
-            sdk: '>=3.2.0 < 4.0.0'
-          dependencies:
-            flutter:
-              sdk: flutter
-            http: ^1.2.2
-            path: ^1.9.0
-            crypto: ^3.0.5
-            web_socket_channel: ^3.0.1
-            latlong2: ^0.9.1
-            math_expressions: ^2.6.0
-            equations: ^5.0.2
-            units_converter: ^3.0.2
-            confetti: ^0.7.0
-            flutter_animate: ^4.5.0
-            flutter_riverpod: ^2.5.1
-            drag_and_drop_lists: ^0.4.1
-            flutter_svg: ^2.0.10+1
-            pdf: ^3.11.1
-          dev_dependencies:
-            flutter_test:
-              sdk: flutter
-          flutter:
-            uses-material-design: true
-          EOF
-            sed -i 's/^          //' pubspec.yaml
+            echo "Activando perfil de resolucion limpia para Flutter 3.50..."
+            echo "aW1wb3J0IHBhdGhsaWIKcHVic3BlY19zYWZlXzM1MCA9ICcnJ25hbWU6IG1vdG9yX3VuaXZlcnNhbF9mbHV0dGVyCmRlc2NyaXB0aW9uOiBTdXBlckFwcCBTRFJJIE1vZHVsYXIgcG9yIE1pY3Jvc2VydmljaW9zIChFc3F1ZW1hIDMgLSBGbHV0dGVyIDMuNTAgKyAzIE1vdG9yZXMgU0RVSSkKcHVibGlzaF90bzogJ25vbmUnCnZlcnNpb246IDUuMC4wKzEKCmVudmlyb25tZW50OgogIHNkazogJz49My41LjAgPCA0LjAuMCcKCmRlcGVuZGVuY2llczoKICBmbHV0dGVyOgogICAgc2RrOiBmbHV0dGVyCiAgaHR0cDogXjEuMi4yCiAgcGF0aDogXjEuOS4wCiAgY3J5cHRvOiBeMy4wLjYKICB3ZWJfc29ja2V0X2NoYW5uZWw6IF4zLjAuMQogIGxhdGxvbmcyOiBeMC45LjEKICBtYXRoX2V4cHJlc3Npb25zOiBeMi42LjAKICBlcXVhdGlvbnM6IF41LjAuMgogIHVuaXRzX2NvbnZlcnRlcjogXjMuMC4yCiAgY29uZmV0dGk6IF4wLjguMAogIGZsdXR0ZXJfYW5pbWF0ZTogXjQuNS4wCiAgZmx1dHRlcl9yaXZlcnBvZDogXjIuNi4xCiAgZHJhZ19hbmRfZHJvcF9saXN0czogXjAuNC4yCiAgcGRmOiBeMy4xMS4xCgpkZXZfZGVwZW5kZW5jaWVzOgogIGZsdXR0ZXJfdGVzdDoKICAgIHNkazoZmx1dHRlcgoKZmx1dHRlcjoKICB1c2VzLW1hdGVyaWFsLWRlc2lnbjogdHJ1ZQogIGFzc2V0czoKICAgIC0gbG9nby5wbmcKJycnCnBhdGhsaWIuUGF0aCgncHVic3BlYy55YW1sJykud3JpdGVfdGV4dChwdWJzcGVjX3NhZmVfMzUwLCBlbmNvZGluZz0ndXRmLTgnKQo=" | base64 -d | python3
             flutter pub get
           fi
           flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: 6. Compilar APK Release con Escudo Auto-Recuperacion Gradle
+      - name: 6. Compilar APK Release en Flutter 3.50 con Escudo Auto-Recuperacion
         run: |
           if ! flutter build apk --release --no-tree-shake-icons; then
-            echo "Activando perfil de compilacion limpia sin conflictos de NDK..."
-            cat << 'EOF' > pubspec.yaml
-          name: motor_universal_flutter
-          description: SuperApp SDUI Modular por Microservicios (Esquema 3)
-          publish_to: 'none'
-          version: 4.0.0+1
-          environment:
-            sdk: '>=3.2.0 < 4.0.0'
-          dependencies:
-            flutter:
-              sdk: flutter
-            http: ^1.2.2
-            path: ^1.9.0
-            crypto: ^3.0.5
-            latlong2: ^0.9.1
-            math_expressions: ^2.6.0
-            units_converter: ^3.0.2
-            confetti: ^0.7.0
-            flutter_riverpod: ^2.5.1
-            drag_and_drop_lists: ^0.4.1
-            pdf: ^3.11.1
-          dev_dependencies:
-            flutter_test:
-              sdk: flutter
-          flutter:
-            uses-material-design: true
-          EOF
-            sed -i 's/^          //' pubspec.yaml
+            echo "Aplicando perfil compatible con Gradle 8 y Flutter 3.50..."
+            echo "aW1wb3J0IHBhdGhsaWIKcHVic3BlY19zYWZlXzM1MCA9ICcnJ25hbWU6IG1vdG9yX3VuaXZlcnNhbF9mbHV0dGVyCmRlc2NyaXB0aW9uOiBTdXBlckFwcCBTRFJJIE1vZHVsYXIgcG9yIE1pY3Jvc2VydmljaW9zIChFc3F1ZW1hIDMgLSBGbHV0dGVyIDMuNTAgKyAzIE1vdG9yZXMgU0RVSSkKcHVibGlzaF90bzogJ25vbmUnCnZlcnNpb246IDUuMC4wKzEKCmVudmlyb25tZW50OgogIHNkazogJz49My41LjAgPCA0LjAuMCcKCmRlcGVuZGVuY2llczoKICBmbHV0dGVyOgogICAgc2RrOiBmbHV0dGVyCiAgaHR0cDogXjEuMi4yCiAgcGF0aDogXjEuOS4wCiAgY3J5cHRvOiBeMy4wLjYKICB3ZWJfc29ja2V0X2NoYW5uZWw6IF4zLjAuMQogIGxhdGxvbmcyOiBeMC45LjEKICBtYXRoX2V4cHJlc3Npb25zOiBeMi42LjAKICBlcXVhdGlvbnM6IF41LjAuMgogIHVuaXRzX2NvbnZlcnRlcjogXjMuMC4yCiAgY29uZmV0dGk6IF4wLjguMAogIGZsdXR0ZXJfYW5pbWF0ZTogXjQuNS4wCiAgZmx1dHRlcl9yaXZlcnBvZDogXjIuNi4xCiAgZHJhZ19hbmRfZHJvcF9saXN0czogXjAuNC4yCiAgcGRmOiBeMy4xMS4xCgpkZXZfZGVwZW5kZW5jaWVzOgogIGZsdXR0ZXJfdGVzdDoKICAgIHNkazoZmx1dHRlcgoKZmx1dHRlcjoKICB1c2VzLW1hdGVyaWFsLWRlc2lnbjogdHJ1ZQogIGFzc2V0czoKICAgIC0gbG9nby5wbmcKJycnCnBhdGhsaWIuUGF0aCgncHVic3BlYy55YW1sJykud3JpdGVfdGV4dChwdWJzcGVjX3NhZmVfMzUwLCBlbmNvZGluZz0ndXRmLTgnKQo=" | base64 -d | python3
             flutter pub get
             flutter build apk --release --no-tree-shake-icons
           fi
@@ -124,6 +58,6 @@ jobs:
       - name: 7. Publicar APK descargable en GitHub Actions
         uses: actions/upload-artifact@v4
         with:
-          name: APK-SuperApp-Orbe-Flutter-Esquema3
+          name: APK-SuperApp-Orbe-Flutter350-Esquema3
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
