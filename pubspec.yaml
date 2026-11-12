@@ -1,0 +1,61 @@
+name: motor_universal_flutter
+description: SuperApp SDUI Flutter (Orbe Imperio + WeChat + Cine 4DX/5D + Duolingo + Uber + Binance + Arduino IoT - Esquema 3)
+publish_to: 'none'
+version: 3.1.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 1. Core, Supabase REST/RPC, SQLite Offline y Boveda Encriptada
+  http: ^1.2.2
+  sqflite: ^2.3.3+1
+  path: ^1.9.0
+  path_provider: ^2.1.4
+  shared_preferences: ^2.3.2
+  flutter_secure_storage: ^9.2.2
+  crypto: ^3.0.5
+
+  # 2. Videos, Cine 4DX/5D, C-Dramas, Udemy/Platzi y WebAR 3D/360
+  video_player: ^2.9.1
+  webview_flutter: ^4.9.0
+  sensors_plus: ^6.0.1
+
+  # 3. Duolingo Bilingue: Hablar (TTS) y Escuchar Microfono (STT) en Ingles y Espanol
+  flutter_tts: ^4.0.2
+  speech_to_text: ^7.0.0
+
+  # 4. Arduino Bluetooth BLE, IoT MQTT y Detector Wi-Fi
+  mqtt_client: ^10.5.1
+  flutter_blue_plus: ^1.32.12
+  connectivity_plus: ^6.0.5
+
+  # 5. Uber Mapa GPS en Vivo y Radar Parental
+  geolocator: ^13.0.1
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
+  # 6. Binance / Bitcoin Graficos Financieros, QR Optico y Camara
+  fl_chart: ^0.69.0
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^5.2.3
+  image_picker: ^1.1.2
+
+  # 7. Animaciones de Juegos, Biometria Huella/Rostro y Exportador PDF
+  flutter_animate: ^4.5.0
+  local_auth: ^2.3.0
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  share_plus: ^10.0.2
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
