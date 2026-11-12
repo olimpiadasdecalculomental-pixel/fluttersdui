@@ -1,19 +1,14 @@
 name: motor_universal_flutter
-description: SuperApp SDUI Flutter 3.50 (Orbe Imperio + Cine 4DX/5D + Duolingo + Uber GPS + Binance + Arduino IoT - Esquema 3)
+description: SuperApp SDUI Flutter Adaptativa para Celular y Tablet (Android & iOS - Esquema 3)
 publish_to: 'none'
-version: 3.2.0+1
+version: 3.3.0+1
 
 environment:
-  sdk: '>=3.3.0 <4.0.0'
+  sdk: '>=3.2.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.2.2
-  shared_preferences: ^2.3.2
-  webview_flutter: ^4.9.0
-  flutter_tts: ^4.0.2
-  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:

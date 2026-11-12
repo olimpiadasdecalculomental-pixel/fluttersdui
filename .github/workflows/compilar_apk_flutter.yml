@@ -18,50 +18,35 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 3. Instalar Flutter SDK Estable
+      - name: 3. Instalar Flutter 3.24.5 LTS Estable (Compatible Android, iOS y Tablets)
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.24.5'
           channel: 'stable'
           cache: true
 
-      - name: 4. Generar carpeta Android nativa preservando main.dart y pubspec.yaml
+      - name: 4. Generar estructura nativa limpia Android/iOS e inyectar permisos
         run: |
-          cp pubspec.yaml pubspec.yaml.bak
-          cp lib/main.dart main.dart.bak
-          flutter create --org com.orbe.sanjose --project-name motor_universal_flutter .
-          mv pubspec.yaml.bak pubspec.yaml
-          mv main.dart.bak lib/main.dart
+          mv pubspec.yaml /tmp/pubspec.yaml
+          mv lib/main.dart /tmp/main.dart
+          rm -rf android ios test
+          flutter create --platforms=android,ios --org com.orbe.sanjose --project-name motor_universal_flutter .
+          rm -rf test
+          mv /tmp/pubspec.yaml pubspec.yaml
+          mv /tmp/main.dart lib/main.dart
 
-          # Subir minSdk a 23 para soportar Camara QR, Bluetooth BLE, Huella y WebView
-          if [ -f "android/app/build.gradle" ]; then
-            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/g' android/app/build.gradle
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/g' android/app/build.gradle
-          fi
-          if [ -f "android/app/build.gradle.kts" ]; then
-            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/g' android/app/build.gradle.kts
-          fi
-
-          # Inyectar permisos SuperApp en AndroidManifest.xml
           sed -i '/<application/i \
           <uses-permission android:name="android.permission.INTERNET"/>\n\
           <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n\
-          <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>\n\
-          <uses-permission android:name="android.permission.CAMERA"/>\n\
-          <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n\
-          <uses-permission android:name="android.permission.BLUETOOTH"/>\n\
-          <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>\n\
-          <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>\n\
-          <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>\n\
-          <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n\
-          <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n\
-          <uses-permission android:name="android.permission.VIBRATE"/>\n\
-          <uses-permission android:name="android.permission.USE_BIOMETRIC"/>' android/app/src/main/AndroidManifest.xml
+          <uses-permission android:name="android.permission.VIBRATE"/>' android/app/src/main/AndroidManifest.xml
 
-      - name: 5. Descargar librerias SuperApp
-        run: flutter pub get
+      - name: 5. Descargar dependencias y verificar codigo Dart
+        run: |
+          flutter pub get
+          flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: 6. Compilar APK Release
-        run: flutter build apk --release --no-tree-shake-icons
+      - name: 6. Compilar APK Release Universal (Celular y Tablet)
+        run: flutter build apk --release --no-tree-shake-icons -v
 
       - name: 7. Publicar APK descargable en GitHub Actions
         uses: actions/upload-artifact@v4

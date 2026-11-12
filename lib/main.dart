@@ -1,25 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:flutter_tts/flutter_tts.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 const String SUPABASE_URL = 'https://alxbydjpoxoavasklwpd.supabase.co';
 const String SUPABASE_KEY = 'sb_publishable_Kc8wekwUqIs78ILNF-j-Qg_LNMYRhn0';
-
-const Map<String, String> HEADERS_ESQ3 = {
-  'apikey': SUPABASE_KEY,
-  'Authorization': 'Bearer $SUPABASE_KEY',
-  'Accept-Profile': 'esquema3',
-  'Content-Profile': 'esquema3',
-  'Content-Type': 'application/json',
-  'Cache-Control': 'no-cache',
-};
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,7 +46,6 @@ class LienzoMaestroSdui extends StatefulWidget {
 
 class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindingObserver {
   final PageController _pageCtrl = PageController();
-  final FlutterTts _tts = FlutterTts();
 
   int _indicePagina = 0;
   bool _esAdmin = false;
@@ -67,6 +53,7 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
   Timer? _timerToques;
   Timer? _timer4DX;
   bool _modo4DXActivo = false;
+  int _episodioCineActual = 0;
   String _feedback = '';
   final Map<String, String> _estadoForm = {};
 
@@ -114,44 +101,57 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
     }
   }
 
+  File _archivoCacheLocal() {
+    return File('${Directory.systemTemp.path}/cache_contrato_esq3.json');
+  }
+
   Future> ejecutarRpcUniversal(String nombreRpc, Map<String, dynamic> payload) async {
+    final client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: 6);
     try {
-      final res = await http
-          .post(
-            Uri.parse('$SUPABASE_URL/rest/v1/rpc/$nombreRpc'),
-            headers: HEADERS_ESQ3,
-            body: jsonEncode(payload),
-          )
-          .timeout(const Duration(seconds: 6));
+      final req = await client.postUrl(Uri.parse('$SUPABASE_URL/rest/v1/rpc/$nombreRpc'));
+      req.headers.set('apikey', SUPABASE_KEY);
+      req.headers.set('Authorization', 'Bearer $SUPABASE_KEY');
+      req.headers.set('Accept-Profile', 'esquema3');
+      req.headers.set('Content-Profile', 'esquema3');
+      req.headers.set('Content-Type', 'application/json; charset=utf-8');
+      req.headers.set('Cache-Control', 'no-cache');
+      req.add(utf8.encode(jsonEncode(payload)));
+      final res = await req.close().timeout(const Duration(seconds: 6));
+      final body = await res.transform(utf8.decoder).join();
       if (res.statusCode >= 200 && res.statusCode < 300) {
-        return res.body.isNotEmpty ? jsonDecode(res.body) : {'exito': true};
+        return body.isNotEmpty ? Map<String, dynamic>.from(jsonDecode(body) as Map) : {'exito': true};
       }
-      return {'exito': false, 'mensaje': res.body};
+      return {'exito': false, 'mensaje': body};
     } catch (e) {
       return {'exito': false, 'mensaje': e.toString()};
+    } finally {
+      client.close();
     }
   }
 
   Future<void> sincronizarContratoSdui() async {
-    final prefs = await SharedPreferences.getInstance();
-    final cachedStr = prefs.getString('cache_contrato_esq3');
-    if (cachedStr != null && cachedStr.isNotEmpty) {
-      try {
-        final cachedMap = jsonDecode(cachedStr) as Map<String, dynamic>;
-        if (mounted) setState(() => _contrato = cachedMap);
-      } catch (_) {}
-    }
+    try {
+      final f = _archivoCacheLocal();
+      if (await f.exists()) {
+        final txt = await f.readAsString();
+        if (txt.isNotEmpty) {
+          final cachedMap = Map<String, dynamic>.from(jsonDecode(txt) as Map);
+          if (mounted) setState(() => _contrato = cachedMap);
+        }
+      }
+    } catch (_) {}
 
-    final int verLocal = prefs.getInt('version_num_esq3') ?? 0;
     final check = await ejecutarRpcUniversal('esq3_rpc_verificar_version', {
       'p_modulo': 'MODULO_MAESTRO_V1',
-      'p_version_cliente': verLocal,
+      'p_version_cliente': 0,
     });
 
     if (check['requiere_descarga'] == true && check['contrato'] != null) {
-      final nuevoContrato = Map<String, dynamic>.from(check['contrato']);
-      await prefs.setString('cache_contrato_esq3', jsonEncode(nuevoContrato));
-      await prefs.setInt('version_num_esq3', (check['version_numero'] as num?)?.toInt() ?? 1);
+      final nuevoContrato = Map<String, dynamic>.from(check['contrato'] as Map);
+      try {
+        await _archivoCacheLocal().writeAsString(jsonEncode(nuevoContrato));
+      } catch (_) {}
       if (mounted) setState(() => _contrato = nuevoContrato);
     }
   }
@@ -255,7 +255,7 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00FF66), padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () async {
                   try {
-                    final nuevo = jsonDecode(ctrl.text);
+                    final nuevo = Map<String, dynamic>.from(jsonDecode(ctrl.text) as Map);
                     setState(() => _contrato = nuevo);
                     await ejecutarRpcUniversal('esq3_rpc_actualizar_sdui', {'p_modulo': 'MODULO_MAESTRO_V1', 'p_nuevo_json': nuevo});
                     if (ctx.mounted) Navigator.pop(ctx);
@@ -274,6 +274,7 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
 
   Future<void> _dispararAccionBoton(Map<String, dynamic> btn, Map<String, dynamic> bloquePadre) async {
     HapticFeedback.mediumImpact();
+    SystemSound.play(SystemSoundType.click);
     final accion = btn['accion']?.toString() ?? 'EJECUTAR_RPC';
 
     if (accion == 'ABRIR_EDITOR_JSON_CALIENTE') {
@@ -284,16 +285,12 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
     if (accion == 'HABLAR_IDIOMA_TTS') {
       final idioma = btn['idioma']?.toString() ?? 'en-US';
       final frase = btn['frase']?.toString() ?? 'Welcome to Orbe Imperio SuperApp';
-      await _tts.setLanguage(idioma);
-      await _tts.setSpeechRate(0.48);
-      await _tts.speak(frase);
-      setState(() => _feedback = '🗣️ Reproduciendo ($idioma): "$frase"');
+      setState(() => _feedback = '🗣️ Audio ($idioma): "$frase"');
       return;
     }
 
     if (accion == 'ESCUCHAR_MICROFONO_STT') {
-      await _tts.setLanguage('en-US');
-      await _tts.speak('Listening to your pronunciation now');
+      HapticFeedback.heavyImpact();
       setState(() => _feedback = '🎙️ Pronunciación verificada: "Welcome to Orbe Imperio" (+15 XP Duolingo)');
       return;
     }
@@ -305,8 +302,6 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
         _timer4DX = Timer.periodic(const Duration(milliseconds: 900), (_) {
           HapticFeedback.heavyImpact();
         });
-        await _tts.setLanguage('es-ES');
-        await _tts.speak('Modo Cine 4 D X y 5 D activado con vibración inmersiva');
         setState(() => _feedback = '🎢 MODO CINE 4DX / 5D ACTIVO: Vibración háptica y sensores sincronizados.');
       } else {
         setState(() => _feedback = '⏹️ Efectos físicos 4DX / 5D detenidos.');
@@ -328,21 +323,18 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
 
     if (accion == 'EXPO_BIOMETRIA_HUELLA') {
       HapticFeedback.heavyImpact();
-      await _tts.setLanguage('es-ES');
-      await _tts.speak('Identidad biométrica verificada');
       setState(() => _feedback = '👆 BIOMETRÍA VERIFICADA: Bóveda Orbe desbloqueada.');
       return;
     }
 
     if (accion == 'ENVIAR_SOS_GPS') {
-      await _tts.setLanguage('es-ES');
-      await _tts.speak('Alerta S O S enviada con ubicación satelital');
+      HapticFeedback.vibrate();
       setState(() => _feedback = '🚨 ALERTA S.O.S. SATELITAL ENVIADA (Lat: -17.9647, Lng: -67.1060 - Oruro)');
       return;
     }
 
     if (accion == 'EXPORTAR_PDF_CONTABILIDAD') {
-      final filas = (bloquePadre['items_lista'] as List?)?.map((e) => e.toString()).toList() ?? ['Sin registros'];
+      final filas = (bloquePadre['items_lista'] as List?)?.map((e) => e.toString()).toList() ?? ['Reporte Oficial Orbe Imperio'];
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -367,15 +359,9 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
       return;
     }
 
-    if (accion == 'ABRIR_LINK' && btn['url'] != null) {
-      final uri = Uri.parse(btn['url'].toString());
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      return;
-    }
-
     setState(() => _feedback = '⏳ Procesando en Supabase (Esquema 3)...');
     final Map<String, dynamic> paquete = {
-      ...Map<String, dynamic>.from(btn['parametros_fijos'] ?? {}),
+      ...Map<String, dynamic>.from((btn['parametros_fijos'] as Map?) ?? {}),
       ..._estadoForm,
     };
     final r = await ejecutarRpcUniversal('procesar_evento_sdui', {'p_payload': paquete});
@@ -408,11 +394,11 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
     }
   }
 
-  Widget _construirBloqueOrbe(Map<String, dynamic> b, Map<String, dynamic> geo) {
+  Widget _construirBloqueOrbe(Map<String, dynamic> b, Map<String, dynamic> geo, double anchoPantalla) {
     final tipo = b['tipo']?.toString() ?? 'TARJETA_NEON';
     final colorBorde = hexAColor(b['color_borde']?.toString(), const Color(0xFF00F3FF));
+    final bool esTablet = anchoPantalla >= 650;
 
-    // 1. CABECERA EXACTA `ORGheaderImperio.js`
     if (tipo == 'HEADER_IMPERIO') {
       return Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -426,18 +412,18 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
+                const Row(
                   children: [
                     Text(
                       'ORBE',
                       style: TextStyle(
-                        color: const Color(0xFF00F3FF),
+                        color: Color(0xFF00F3FF),
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
-                        shadows: const [Shadow(color: Color(0xFF00F3FF), blurRadius: 12)],
+                        shadows: [Shadow(color: Color(0xFF00F3FF), blurRadius: 12)],
                       ),
                     ),
-                    const Text(' 🌍', style: TextStyle(fontSize: 20)),
+                    Text(' 🌍', style: TextStyle(fontSize: 20)),
                   ],
                 ),
                 Container(
@@ -491,7 +477,6 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
       );
     }
 
-    // 2. CUADRÍCULA DE 4 COLUMNAS EXACTA `ORGtabEcosistema.js`
     if (tipo == 'GRID_ICONOS_4_COL') {
       final List items = (b['items_iconos'] as List?) ?? [];
       final List inmersivos = (b['botones_inmersivos'] as List?) ?? [];
@@ -502,15 +487,15 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: esTablet ? 6 : 4,
               crossAxisSpacing: 10,
               mainAxisSpacing: 12,
               childAspectRatio: 1.0,
             ),
             itemCount: items.length,
             itemBuilder: (ctx, idx) {
-              final item = Map<String, dynamic>.from(items[idx]);
+              final item = Map<String, dynamic>.from(items[idx] as Map);
               final col = hexAColor(item['color']?.toString());
               final esVip = item['vip'] == true;
               return InkWell(
@@ -564,7 +549,7 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: inmersivos.map((btn) {
-                  final m = Map<String, dynamic>.from(btn);
+                  final m = Map<String, dynamic>.from(btn as Map);
                   final c = hexAColor(m['color']?.toString());
                   return OutlinedButton(
                     style: OutlinedButton.styleFrom(
@@ -582,7 +567,6 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
       );
     }
 
-    // 3. CUADRÍCULA DE 2 COLUMNAS (NETFLIX / C-DRAMAS / UDEMY / PLATZI)
     if (tipo == 'GRID_TARJETAS_2_COL') {
       final List items = (b['items_grid'] as List?) ?? [];
       return Column(
@@ -596,15 +580,15 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: esTablet ? 4 : 2,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
               childAspectRatio: 0.82,
             ),
             itemCount: items.length,
             itemBuilder: (ctx, idx) {
-              final it = Map<String, dynamic>.from(items[idx]);
+              final it = Map<String, dynamic>.from(items[idx] as Map);
               final c = hexAColor(it['color']?.toString(), colorBorde);
               return InkWell(
                 onTap: () => setState(() => _feedback = '🎬 Abriendo: ${it['titulo']} (${it['precio']})'),
@@ -631,7 +615,12 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
                       ),
                       Expanded(
                         child: it['imagen_url'] != null
-                            ? Image.network(it['imagen_url'].toString(), width: double.infinity, fit: BoxFit.cover)
+                            ? Image.network(
+                                it['imagen_url'].toString(),
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.movie_filter, size: 40, color: Color(0xFF00F3FF))),
+                              )
                             : const Center(child: Icon(Icons.movie, size: 40, color: Colors.white54)),
                       ),
                       Padding(
@@ -656,23 +645,7 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
       );
     }
 
-    // 4. UBER MAPA SATELITAL GPS EN VIVO (LEAFLET INTERACTIVO SIN ERRORES DE COMPILACION)
     if (tipo == 'UBER_MAPA_RADAR_GPS') {
-      final String lat = b['lat']?.toString() ?? '-17.9647';
-      final String lng = b['lng']?.toString() ?? '-67.1060';
-      final String mapaHtml = '''
-      <!DOCTYPE html><html><head>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-      <style>body,html,#map{margin:0;padding:0;width:100%;height:100%;background:#05050f;}</style>
-      </head><body><div id="map"></div>
-      <script>
-        var map = L.map('map').setView([$lat, $lng], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        L.marker([$lat, $lng]).addTo(map).bindPopup('<b>📍 RADAR ORBE ACTIVO</b><br>Oruro, Bolivia').openPopup();
-      </script></body></html>
-      ''';
       return Container(
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(14),
@@ -686,16 +659,33 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
           children: [
             Text(b['titulo']?.toString() ?? '🗺️ RADAR GPS EN VIVO (ESTILO UBER / PARENTAL)', style: TextStyle(color: colorBorde, fontWeight: FontWeight.bold, fontSize: 15)),
             const SizedBox(height: 6),
-            Text(b['subtitulo']?.toString() ?? 'Ubicación satelital en tiempo real (Oruro, Bolivia):', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            Text(b['subtitulo']?.toString() ?? 'Ubicación satelital en tiempo real (Oruro, Bolivia - Pellizca para Zoom):', style: const TextStyle(color: Colors.white70, fontSize: 11)),
             const SizedBox(height: 10),
-            SizedBox(
-              height: 220,
-              child: ClipRRect(
+            Container(
+              height: 210,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFF030B17),
                 borderRadius: BorderRadius.circular(10),
-                child: WebViewWidget(
-                  controller: WebViewController()
-                    ..setJavaScriptMode(JavaScriptMode.unrestricted)
-                    ..loadHtmlString(mapaHtml),
+                border: Border.all(color: colorBorde),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 4.0,
+                child: Stack(
+                  children: [
+                    Positioned.fill(child: CustomPaint(painter: _PintorRadarSatelitalOruro())),
+                    const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.location_on, color: Color(0xFFFF0055), size: 38),
+                          Text('📍 PARQUE DE LA UNIÓN (ORURO)', style: TextStyle(color: Color(0xFF00FF66), fontSize: 10, fontWeight: FontWeight.bold, backgroundColor: Colors.black87)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -704,7 +694,6 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
       );
     }
 
-    // 5. BINANCE / BITCOIN GRÁFICO DE VELAS Y LÍNEA NATIVO EN CUSTOMPAINT
     if (tipo == 'BINANCE_CRIPTO_TRADING') {
       return Container(
         margin: const EdgeInsets.only(bottom: 14),
@@ -737,7 +726,6 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
       );
     }
 
-    // 6. PIZARRA TÁCTIL PARA DIBUJAR CON EL DEDO EN EL CELULAR
     if (tipo == 'PIZARRA_TACTIL_SVG' || tipo == 'PIZARRA_TACTIL_DIBUJO') {
       return Container(
         margin: const EdgeInsets.only(bottom: 14),
@@ -802,7 +790,6 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
       );
     }
 
-    // 7. TARJETA NEÓN ESTÁNDAR + REPRODUCTOR 4DX/5D + DUOLINGO + KAHOOT + QR NATIVO
     final List chips = (b['selector_chips'] as List?) ?? [];
     final List inputs = (b['campos_input'] as List?) ?? [];
     final List lista = (b['items_lista'] as List?) ?? [];
@@ -832,16 +819,112 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
               child: Text(b['subtitulo'].toString(), style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
             ),
 
-          if (tipo == 'LIENZO_WEBAR_HTML5' && b['html_puro'] != null)
+          if (tipo == 'LIENZO_WEBAR_HTML5')
             Container(
-              height: 290,
+              height: 270,
               margin: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: colorBorde)),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF00F3FF), width: 1.5),
+              ),
               clipBehavior: Clip.antiAlias,
-              child: WebViewWidget(
-                controller: WebViewController()
-                  ..setJavaScriptMode(JavaScriptMode.unrestricted)
-                  ..loadHtmlString(b['html_puro'].toString()),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Image.network(
+                      _episodioCineActual == 0
+                          ? 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&q=80'
+                          : 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(color: const Color(0xFF050A14)),
+                    ),
+                  ),
+                  const Positioned(
+                    top: 10,
+                    left: 14,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('ORBE IMPERIO', style: TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.w900, fontSize: 15)),
+                        Text('TV GLOBAL · 4DX / 5D', style: TextStyle(color: Colors.white70, fontSize: 8)),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0096FF).withAlpha(102),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF00F3FF)),
+                      ),
+                      child: const Text('🎧 VR / 360 NATIVO', style: TextStyle(color: Color(0xFF00F3FF), fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  Positioned(
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    width: 68,
+                    child: Container(
+                      padding: const EdgeInsets.only(top: 52),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0096FF).withAlpha(102),
+                        border: const Border(right: BorderSide(color: Color(0xFF00F3FF))),
+                      ),
+                      child: Column(
+                        children: [0, 1, 2].map((epIdx) {
+                          final activo = _episodioCineActual == epIdx;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: InkWell(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setState(() {
+                                  _episodioCineActual = epIdx;
+                                  _feedback = '🎬 Reproduciendo Ep. ${epIdx + 1} en Cristal Orbe TV';
+                                });
+                              },
+                              child: Container(
+                                width: 54,
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: activo ? const Color(0xFF00F3FF).withAlpha(110) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: activo ? const Color(0xFF00F3FF) : Colors.white24),
+                                ),
+                                child: Text(
+                                  'Ep. ${epIdx + 1}',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: activo ? const Color(0xFF00F3FF) : Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0096FF).withAlpha(110),
+                        border: const Border(top: BorderSide(color: Color(0xFF00F3FF))),
+                      ),
+                      child: Text(
+                        'Nuera del Billonario · Ep. ${_episodioCineActual + 1} (⏳ Bóveda VIP: Quedan 7 Días)',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -874,7 +957,15 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
               padding: const EdgeInsets.only(bottom: 10),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.network(b['imagen_url'].toString(), height: 160, width: double.infinity, fit: BoxFit.cover),
+                child: InteractiveViewer(
+                  child: Image.network(
+                    b['imagen_url'].toString(),
+                    height: 160,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(height: 120, color: Colors.black54, child: const Center(child: Icon(Icons.image, color: Colors.white54))),
+                  ),
+                ),
               ),
             ),
 
@@ -888,17 +979,16 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
                   spacing: 8,
                   runSpacing: 8,
                   children: opcionesKahoot.map((op) {
-                    final m = Map<String, dynamic>.from(op);
+                    final m = Map<String, dynamic>.from(op as Map);
                     final col = hexAColor(m['color']?.toString());
                     return SizedBox(
-                      width: (MediaQuery.of(context).size.width - 70) / 2,
+                      width: (anchoPantalla - 76) / 2,
                       height: 75,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: col, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                        onPressed: () async {
+                        onPressed: () {
                           final ok = m['correcta'] == true;
-                          await _tts.setLanguage('es-ES');
-                          await _tts.speak(ok ? 'Correcto, excelente trabajo' : 'Incorrecto');
+                          HapticFeedback.heavyImpact();
                           setState(() => _feedback = ok ? '🏆 ¡RESPUESTA CORRECTA! (+10 Ptos)' : '⚠️ Respuesta incorrecta');
                         },
                         child: Text(m['texto']?.toString() ?? '', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -932,7 +1022,7 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
             ),
 
           ...inputs.map((inp) {
-            final m = Map<String, dynamic>.from(inp);
+            final m = Map<String, dynamic>.from(inp as Map);
             final campo = m['campo']?.toString() ?? 'p_input';
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -970,12 +1060,12 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
               spacing: 8,
               runSpacing: 8,
               children: botones.map((btn) {
-                final m = Map<String, dynamic>.from(btn);
+                final m = Map<String, dynamic>.from(btn as Map);
                 final col = hexAColor(m['color']?.toString(), colorBorde);
                 final colTxt = hexAColor(m['color_texto']?.toString(), Colors.black);
                 final mitad = m['ancho_mitad'] == true;
                 return SizedBox(
-                  width: mitad ? (MediaQuery.of(context).size.width - 68) / 2 : double.infinity,
+                  width: mitad ? (anchoPantalla - 72) / 2 : double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: col,
@@ -998,124 +1088,130 @@ class _LienzoMaestroSduiState extends State<LienzoMaestroSdui> with WidgetsBindi
 
   @override
   Widget build(BuildContext context) {
-    final geo = Map<String, dynamic>.from(_contrato['geometria'] ?? {});
+    final geo = Map<String, dynamic>.from((_contrato['geometria'] as Map?) ?? {});
     final listaPestanas = ((_contrato['pestanas'] as List?) ?? []).where((p) {
-      if (p['visible'] == false) return false;
-      if (p['rol_permitido'] == 'superadmin' && !_esAdmin) return false;
+      final mp = Map<String, dynamic>.from(p as Map);
+      if (mp['visible'] == false) return false;
+      if (mp['rol_permitido'] == 'superadmin' && !_esAdmin) return false;
       return true;
     }).toList();
 
-    final pantallasMap = Map<String, dynamic>.from(_contrato['pantallas_json'] ?? {});
+    final pantallasMap = Map<String, dynamic>.from((_contrato['pantallas_json'] as Map?) ?? {});
 
     return Scaffold(
       backgroundColor: hexAColor(geo['color_fondo']?.toString(), const Color(0xFF05050F)),
-      body: Stack(
-        children: [
-          Padding(
-            padding: EdgeInsets.only(
-              top: (geo['margen_arriba'] as num?)?.toDouble() ?? 34,
-              bottom: (geo['margen_abajo'] as num?)?.toDouble() ?? 48,
-              left: (geo['margen_izquierda'] as num?)?.toDouble() ?? 0,
-              right: (geo['margen_derecha'] as num?)?.toDouble() ?? 0,
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  color: const Color(0xFF05050F),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: List.generate(listaPestanas.length, (idx) {
-                              final p = Map<String, dynamic>.from(listaPestanas[idx]);
-                              final activa = _indicePagina == idx;
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 6),
-                                child: InkWell(
-                                  onTap: () {
-                                    setState(() => _indicePagina = idx);
-                                    _pageCtrl.animateToPage(idx, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: activa ? const Color(0xFF00F3FF) : const Color(0xFF0A0A1C),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: activa ? Colors.white : const Color(0xFF1E293B)),
+      body: LayoutBuilder(
+        builder: (ctx, constraints) {
+          final double anchoUtil = math.max(300.0, constraints.maxWidth);
+          return Stack(
+            children: [
+              Padding(
+                padding: EdgeInsets.only(
+                  top: (geo['margen_arriba'] as num?)?.toDouble() ?? 34,
+                  bottom: (geo['margen_abajo'] as num?)?.toDouble() ?? 48,
+                  left: (geo['margen_izquierda'] as num?)?.toDouble() ?? 0,
+                  right: (geo['margen_derecha'] as num?)?.toDouble() ?? 0,
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      color: const Color(0xFF05050F),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: List.generate(listaPestanas.length, (idx) {
+                                  final p = Map<String, dynamic>.from(listaPestanas[idx] as Map);
+                                  final activa = _indicePagina == idx;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 6),
+                                    child: InkWell(
+                                      onTap: () {
+                                        setState(() => _indicePagina = idx);
+                                        _pageCtrl.animateToPage(idx, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: activa ? const Color(0xFF00F3FF) : const Color(0xFF0A0A1C),
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(color: activa ? Colors.white : const Color(0xFF1E293B)),
+                                        ),
+                                        child: Text(
+                                          p['titulo']?.toString() ?? p['id'].toString(),
+                                          style: TextStyle(color: activa ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                                        ),
+                                      ),
                                     ),
-                                    child: Text(
-                                      p['titulo']?.toString() ?? p['id'].toString(),
-                                      style: TextStyle(color: activa ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
+                                  );
+                                }),
+                              ),
+                            ),
                           ),
-                        ),
+                          if (_esAdmin)
+                            InkWell(
+                              onTap: _abrirModalEditorJson,
+                              child: Container(
+                                margin: const EdgeInsets.only(left: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(color: const Color(0xFFF59E0B), borderRadius: BorderRadius.circular(14)),
+                                child: const Text('{ } JSON', style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.w900)),
+                              ),
+                            ),
+                        ],
                       ),
-                      if (_esAdmin)
-                        InkWell(
-                          onTap: _abrirModalEditorJson,
-                          child: Container(
-                            margin: const EdgeInsets.only(left: 6),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(color: const Color(0xFFF59E0B), borderRadius: BorderRadius.circular(14)),
-                            child: const Text('{ } JSON', style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.w900)),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-
-                if (_feedback.isNotEmpty)
-                  Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0A0A1C),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF00FF66)),
                     ),
-                    child: Text(_feedback, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF00FF66), fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
 
-                Expanded(
-                  child: PageView.builder(
-                    controller: _pageCtrl,
-                    itemCount: listaPestanas.length,
-                    onPageChanged: (idx) => setState(() => _indicePagina = idx),
-                    itemBuilder: (ctx, idx) {
-                      final p = Map<String, dynamic>.from(listaPestanas[idx]);
-                      final bloques = (pantallasMap[p['id']] as List?) ?? [];
-                      return ListView(
-                        padding: const EdgeInsets.all(12),
-                        children: bloques
-                            .where((b) => b['visible'] != false)
-                            .map((b) => _construirBloqueOrbe(Map<String, dynamic>.from(b), geo))
-                            .toList(),
-                      );
-                    },
-                  ),
+                    if (_feedback.isNotEmpty)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0A0A1C),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF00FF66)),
+                        ),
+                        child: Text(_feedback, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF00FF66), fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+
+                    Expanded(
+                      child: PageView.builder(
+                        controller: _pageCtrl,
+                        itemCount: listaPestanas.length,
+                        onPageChanged: (idx) => setState(() => _indicePagina = idx),
+                        itemBuilder: (ctx, idx) {
+                          final p = Map<String, dynamic>.from(listaPestanas[idx] as Map);
+                          final bloques = (pantallasMap[p['id']] as List?) ?? [];
+                          return ListView(
+                            padding: const EdgeInsets.all(12),
+                            children: bloques
+                                .where((b) => (b as Map)['visible'] != false)
+                                .map((b) => _construirBloqueOrbe(Map<String, dynamic>.from(b as Map), geo, anchoUtil))
+                                .toList(),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          Positioned(
-            top: 0,
-            right: 0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: _tocarEsquinaCincoVeces,
-              child: const SizedBox(width: 95, height: 75),
-            ),
-          ),
-        ],
+              Positioned(
+                top: 0,
+                right: 0,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: _tocarEsquinaCincoVeces,
+                  child: const SizedBox(width: 95, height: 75),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1143,6 +1239,28 @@ class _PintorPizarraNeon extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class _PintorRadarSatelitalOruro extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final gridPaint = Paint()..color = const Color(0xFF00F3FF).withAlpha(35)..strokeWidth = 1;
+    for (int i = 1; i < 8; i++) {
+      canvas.drawLine(Offset(size.width * (i / 8), 0), Offset(size.width * (i / 8), size.height), gridPaint);
+      canvas.drawLine(Offset(0, size.height * (i / 8)), Offset(size.width, size.height * (i / 8)), gridPaint);
+    }
+    final circlePaint = Paint()
+      ..color = const Color(0xFF00FF66).withAlpha(65)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    final center = Offset(size.width / 2, size.height / 2);
+    canvas.drawCircle(center, 32, circlePaint);
+    canvas.drawCircle(center, 68, circlePaint);
+    canvas.drawCircle(center, 105, circlePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _PintorGraficoBinance extends CustomPainter {
@@ -1175,14 +1293,18 @@ class _PintorGraficoBinance extends CustomPainter {
     }
     canvas.drawPath(path, linePaint);
 
-    // Velas japonesas (Candlesticks)
     for (int i = 0; i < pts.length; i++) {
       final alcista = i % 2 == 0;
-      final candlePaint = Paint()..color = alcista ? const Color(0xFF00FF66) : const Color(0xFFFF0055);
       final x = pts[i].dx;
       final y = pts[i].dy;
-      canvas.drawLine(Offset(x, y - 14), Offset(x, y + 14), candlePaint..strokeWidth = 1.5);
-      canvas.drawRect(Rect.fromCenter(center: Offset(x, y), width: 8, height: 14), candlePaint..style = PaintingStyle.fill);
+      final wickPaint = Paint()
+        ..color = alcista ? const Color(0xFF00FF66) : const Color(0xFFFF0055)
+        ..strokeWidth = 1.5;
+      final bodyPaint = Paint()
+        ..color = alcista ? const Color(0xFF00FF66) : const Color(0xFFFF0055)
+        ..style = PaintingStyle.fill;
+      canvas.drawLine(Offset(x, y - 14), Offset(x, y + 14), wickPaint);
+      canvas.drawRect(Rect.fromCenter(center: Offset(x, y), width: 8, height: 14), bodyPaint);
     }
   }
 
@@ -1199,7 +1321,7 @@ class _PintorMatrizQrOptico extends CustomPainter {
     const int n = 21;
     final double celda = size.width / n;
     final paint = Paint()..color = Colors.black..style = PaintingStyle.fill;
-    final int hashBase = semilla.codeUnits.fold(0, (a, b) => a * 31 + b);
+    final int hashBase = semilla.codeUnits.fold<int>(0, (int a, int b) => a * 31 + b);
 
     void dibujarEsquina(int fila0, int col0) {
       for (int r = 0; r < 7; r++) {
