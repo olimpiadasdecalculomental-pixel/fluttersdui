@@ -1,7 +1,7 @@
 name: motor_universal_flutter
-description: SuperApp SDUI Modular por Microservicios (Esquema 3 - Flutter 3.50 Full + 3 Motores SDUI)
+description: Clon Exacto Google Stitch Diseno 1 (San Jose 1942 - 60 Librerias)
 publish_to: 'none'
-version: 5.0.0+1
+version: 6.0.0+1
 
 environment:
   sdk: ^3.5.0
@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # 1. Los 3 Motores SDUI (Propio + Stac #15 + JsonDynamicWidget #16), Backend y Cache Offline
+  # 1. Los 3 Motores SDUI, Backend y Cache Offline
   stac: ^0.7.0
   json_dynamic_widget: ^7.0.6
   hive_ce: ^2.6.0
@@ -85,6 +85,12 @@ dependencies:
   google_generative_ai: ^0.4.6
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
+
+  # 12. Complementos visuales obligatorios para fidelidad 100% con Google Stitch en Stac
+  google_fonts: ^6.2.1             # Indispensable: soporta Space Grotesk y Outfit de Stitch
+  lucide_icons_flutter: ^1.2.5     # Iconos minimalistas de trazo fino identicos a Tailwind/Stitch
+  dotted_border: ^2.1.0            # Bordes punteados usados en tarjetas de Stitch
+  shimmer: ^3.0.0                  # Efecto de resplandor y carga skeleton de Stitch
 
 dependency_overrides:
   petitparser: ^6.0.2

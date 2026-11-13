@@ -17,6 +17,7 @@ import '../microservicios/ms_07_kahoot_lumosity_iot.dart';
 import '../microservicios/ms_08_cine_cristal_html5.dart';
 import '../microservicios/ms_09_tarjeta_neon_base.dart';
 import '../microservicios/ms_10_motores_stac_y_jdw.dart';
+import '../microservicios/ms_11_stitch_diseno_1_muro.dart';
 
 class LienzoMaestroSdui extends StatefulWidget {
   const LienzoMaestroSdui({super.key});
@@ -46,9 +47,34 @@ class _LienzoMaestroSduiState extends State with WidgetsBindingObserver {
   Color _colorLapizActual = const Color(0xFF00FF66);
 
   Map _contrato = {
-    'geometria': {'color_fondo': '#071326', 'color_tarjeta': '#142033', 'color_primario': '#A9C7FF', 'color_secundario': '#FFB703', 'color_terciario': '#00509D', 'margen_arriba': 34, 'margen_abajo': 48, 'margen_izquierda': 0, 'margen_derecha': 0},
-    'pestanas': [{'id': 'RAIZ', 'titulo': '📺 1. MURO SANTO', 'visible': true}],
-    'pantallas_json': {'RAIZ': []}
+    'geometria': {
+      'modo_clon_stitch_puro': true,
+      'color_fondo': '#071326',
+      'color_tarjeta': '#142033',
+      'color_primario': '#A9C7FF',
+      'color_secundario': '#FBB400',
+      'color_terciario': '#00509D',
+      'margen_arriba': 0,
+      'margen_abajo': 0,
+      'margen_izquierda': 0,
+      'margen_derecha': 0
+    },
+    'pestanas': [
+      {'id': 'RAIZ', 'titulo': 'Muro', 'visible': true}
+    ],
+    'pantallas_json': {
+      'RAIZ': [
+        {
+          'id': 'stitch_diseno_1_clon_puro',
+          'visible': true,
+          'tipo': 'STITCH_DISENO_1_EXACTO',
+          'header_titulo': 'SAN JOSÉ',
+          'header_anio': '1942',
+          'header_rango': 'SOCIO VIP',
+          'header_puntos': '350',
+        }
+      ]
+    }
   };
 
   @override
@@ -77,18 +103,6 @@ class _LienzoMaestroSduiState extends State with WidgetsBindingObserver {
     if (local != null && mounted) setState(() => _contrato = local);
     final nube = await PuenteSupabaseSdui.sincronizarConNube();
     if (nube != null && mounted) setState(() => _contrato = nube);
-  }
-
-  Future _guardarPantallaStitchEnSupabase(String idPantalla, List nuevosBloques) async {
-    final Map pantallasMap = Map.from((_contrato['pantallas_json'] as Map?) ?? {});
-    pantallasMap[idPantalla] = nuevosBloques;
-    _contrato['pantallas_json'] = pantallasMap;
-    setState(() => _feedback = '💾 Guardando cambios de [$idPantalla] en Supabase...');
-    await PuenteSupabaseSdui.ejecutarRpcUniversal('esq3_rpc_actualizar_sdui', {
-      'p_modulo': 'MODULO_MAESTRO_V1',
-      'p_nuevo_json': _contrato
-    });
-    setState(() => _feedback = '✅ Diseño de [$idPantalla] guardado en Supabase.');
   }
 
   void _tocarEsquinaCincoVeces() {
@@ -139,12 +153,10 @@ class _LienzoMaestroSduiState extends State with WidgetsBindingObserver {
     final idMod = b['id']?.toString() ?? tipo;
     return ejecutarConEscudoMicroservicio(idMod, () {
       switch (tipo) {
+        case 'STITCH_DISENO_1_EXACTO':
+          return SizedBox(height: 820, child: Ms11StitchDiseno1Muro(bloque: b));
         case 'STAC_STITCH':
-          return Ms10MotoresStacYJdw.construirMotorStacStitch(
-            b: b,
-            anchoPantalla: anchoUtil,
-            onDispararBoton: _ejecutarBoton,
-          );
+          return Ms10MotoresStacYJdw.construirMotorStacStitch(b: b, anchoPantalla: anchoUtil, onDispararBoton: _ejecutarBoton);
         case 'JSON_DYNAMIC_HIBRIDO':
           return Ms10MotoresStacYJdw.construirMotorJsonDynamicHibrido(
             b: b,
@@ -214,13 +226,43 @@ class _LienzoMaestroSduiState extends State with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final geo = Map.from((_contrato['geometria'] as Map?) ?? {});
+    final pantallasMap = Map.from((_contrato['pantallas_json'] as Map?) ?? {});
+    final List bloquesRaiz = (pantallasMap['RAIZ'] as List?) ?? [];
+
+    final bool tieneClonStitch = bloquesRaiz.isNotEmpty &&
+        (bloquesRaiz.first as Map)['tipo']?.toString() == 'STITCH_DISENO_1_EXACTO';
+
+    if (!_esAdmin && (geo['modo_clon_stitch_puro'] == true || tieneClonStitch)) {
+      final Map bloqueStitch = bloquesRaiz.isNotEmpty
+          ? Map.from(bloquesRaiz.first as Map)
+          : {'tipo': 'STITCH_DISENO_1_EXACTO'};
+      return Scaffold(
+        backgroundColor: const Color(0xFF071326),
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: Ms11StitchDiseno1Muro(bloque: bloqueStitch),
+            ),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: _tocarEsquinaCincoVeces,
+                child: const SizedBox(width: 95, height: 75),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final listaPestanas = ((_contrato['pestanas'] as List?) ?? []).where((p) {
       final mp = Map.from(p as Map);
       if (mp['visible'] == false) return false;
       if (mp['rol_permitido'] == 'superadmin' && !_esAdmin) return false;
       return true;
     }).toList();
-    final pantallasMap = Map.from((_contrato['pantallas_json'] as Map?) ?? {});
 
     return Scaffold(
       backgroundColor: hexAColor(geo['color_fondo']?.toString(), const Color(0xFF071326)),
@@ -272,30 +314,6 @@ class _LienzoMaestroSduiState extends State with WidgetsBindingObserver {
                               ),
                             ),
                           ),
-                          InkWell(
-                            onTap: () {
-                              HapticFeedback.mediumImpact();
-                              setState(() {
-                                _modoStitchEdit = !_modoStitchEdit;
-                                _feedback = _modoStitchEdit
-                                    ? '✏️ MODO STITCH EDIT ACTIVO: Toca cualquier componente para acercarlo (Zoom), moverlo, cambiar colores o quitarlo.'
-                                    : '✅ Modo Stitch Edit cerrado.';
-                              });
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.only(left: 6),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: _modoStitchEdit ? const Color(0xFF00C853) : const Color(0xFF00509D),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: const Color(0xFFFBB400)),
-                              ),
-                              child: Text(
-                                _modoStitchEdit ? '✔ LISTO' : '✏️ EDIT',
-                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900),
-                              ),
-                            ),
-                          ),
                           if (_esAdmin)
                             InkWell(
                               onTap: _abrirEditorJson,
@@ -337,33 +355,10 @@ class _LienzoMaestroSduiState extends State with WidgetsBindingObserver {
                                 indice: bIdx,
                                 totalBloques: bloquesVisibles.length,
                                 child: _enrutarMicroservicio(bloqueMap, geo, anchoUtil),
-                                onZoomInspeccionar: () {
-                                  InspectorStitchSdui.abrirZoomComponenteStitch(
-                                    context: context,
-                                    listaBloquesPantalla: bloquesVisibles,
-                                    indiceInicial: bIdx,
-                                    constructorVistaPrevia: (bPreview) => _enrutarMicroservicio(bPreview, geo, anchoUtil),
-                                    onGuardarCambiosEnNube: (nuevos) => _guardarPantallaStitchEnSupabase(idPant, nuevos),
-                                  );
-                                },
-                                onSubirLugar: () {
-                                  if (bIdx > 0) {
-                                    final temp = bloquesVisibles.removeAt(bIdx);
-                                    bloquesVisibles.insert(bIdx - 1, temp);
-                                    _guardarPantallaStitchEnSupabase(idPant, bloquesVisibles);
-                                  }
-                                },
-                                onBajarLugar: () {
-                                  if (bIdx < bloquesVisibles.length - 1) {
-                                    final temp = bloquesVisibles.removeAt(bIdx);
-                                    bloquesVisibles.insert(bIdx + 1, temp);
-                                    _guardarPantallaStitchEnSupabase(idPant, bloquesVisibles);
-                                  }
-                                },
-                                onQuitarComponente: () {
-                                  bloquesVisibles.removeAt(bIdx);
-                                  _guardarPantallaStitchEnSupabase(idPant, bloquesVisibles);
-                                },
+                                onZoomInspeccionar: () {},
+                                onSubirLugar: () {},
+                                onBajarLugar: () {},
+                                onQuitarComponente: () {},
                               );
                             }),
                           );
