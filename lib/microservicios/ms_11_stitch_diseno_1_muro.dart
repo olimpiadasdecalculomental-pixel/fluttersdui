@@ -24,7 +24,6 @@ class _Ms11StitchDiseno1MuroState extends State with SingleTickerProviderStateMi
 
   static const Color cSurface = Color(0xFF071326);
   static const Color cSurfaceLowest = Color(0xFF030E21);
-  static const Color cSurfaceLow = Color(0xFF101C2F);
   static const Color cSurfaceContainer = Color(0xFF142033);
   static const Color cSurfaceHigh = Color(0xFF1F2A3E);
   static const Color cSurfaceHighest = Color(0xFF2A3549);
@@ -76,7 +75,7 @@ class _Ms11StitchDiseno1MuroState extends State with SingleTickerProviderStateMi
 
   @override
   Widget build(BuildContext context) {
-    final Map b = widget.bloque;
+    final Map b = (widget as Ms11StitchDiseno1Muro).bloque;
     final String avatarUrl = b['avatar_perfil_url']?.toString() ??
         'https://lh3.googleusercontent.com/aida/ALJJyrDJc05woFyW27izHWa68BsjEXCpRu6P4FlsytinWUlclP0ZD1zMKHXSdNpEFMS4m85L3AdI2m37GhWhAbJc_tqIwRNAZ6AmYPVlOy9bNXT25drLVeXaiHEa-3pcW2KvcvSnXz8oyBHN2bH0BGt6MVQCEkEd6BBijq1EQQdQa6I7tIZZug6lhpytkn2ai31KTmgPOgA99xT_M8mVOkQZ7MGa68wTRzPRxBbeHvFi7E8E';
     final String videoBgUrl = b['video_bg_url']?.toString() ??
