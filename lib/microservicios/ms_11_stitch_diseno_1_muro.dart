@@ -178,6 +178,15 @@ class _Ms11StitchDiseno1MuroState extends State with SingleTickerProviderStateMi
 
   void _mostrarToast(String msg) {
     HapticFeedback.selectionClick();
+    const List rpcsPorPantalla = [
+      'esq3_ms_pantalla_1_muro',
+      'esq3_ms_pantalla_2_ganadores',
+      'esq3_ms_pantalla_3_boveda',
+      'esq3_ms_pantalla_4_auditoria',
+      'esq3_ms_pantalla_5_socio',
+    ];
+    final String rpcActiva = rpcsPorPantalla[_navIndex.clamp(0, 4)];
+    PuenteSupabaseSdui.ejecutarRpcUniversal(rpcActiva, {'p_evento': msg, 'p_pantalla_idx': _navIndex});
     setState(() => _toastMsg = msg);
     Future.delayed(const Duration(milliseconds: 2400), () {
       if (mounted && _toastMsg == msg) setState(() => _toastMsg = '');
